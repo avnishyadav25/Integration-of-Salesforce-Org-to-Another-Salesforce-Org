@@ -1,0 +1,95 @@
+public class SendExternalIDUsingRestAPI {
+    private final String clientId = '3MVG9YDQS5WtC11pNV9kn8n_zz1LcZzoGuwOEO.Fc8wooLOd.b_c3s3Nv2S98kOHXAqocgtAS7emuzNBG608g';
+    private final String clientSecret = '4543387456901139467';
+    private final String username = 'avnish1@algoworks.com';
+    private final String password = 'algo@1234';
+    public static String success = 'NOT Okay';
+    public Contact con{get; set;}
+    
+    public SendExternalIDUsingRestAPI(){
+        con = new Contact();
+    }
+    
+    public class deserializeResponse
+    {
+        public String id;
+        public String access_token;
+    }
+    
+    public String ReturnAccessToken (SendExternalIDUsingRestAPI acount)
+    {
+        String reqbody = 'grant_type=password&client_id='+
+            clientId+'&client_secret='+
+            clientSecret+'&username='+
+            username+'&password='+password;
+        Http h = new Http();
+        HttpRequest req = new HttpRequest();
+        req.setBody(reqbody);
+        req.setMethod('POST');
+        req.setEndpoint('https://login.salesforce.com/services/oauth2/token');
+        HttpResponse res = h.send(req);
+        deserializeResponse resp1 = (deserializeResponse)JSON.deserialize(res.getbody(),deserializeResponse.class);
+        system.debug('@@@@access_token@@'+resp1 );
+        return resp1.access_token;
+    }
+    
+	@Future(callout=true)
+    public static void callgetContact (String contactID)
+    {
+        SendExternalIDUsingRestAPI acount1 = new SendExternalIDUsingRestAPI();
+        String accessToken;
+        accessToken = acount1.ReturnAccessToken (acount1);
+        Contact conObject=new Contact();
+        if(accessToken != null){
+            String endPoint = 'https://avnish1-dev-ed.my.salesforce.com/services/apexrest/v1/getExternalID?id=' +contactID;
+            Http h2 = new Http();
+            HttpRequest req1 = new HttpRequest();
+            req1.setHeader('Authorization','Bearer ' + accessToken);
+            req1.setHeader('Content-Type','application/json');
+            req1.setHeader('accept','application/json');
+            req1.setMethod('GET');
+            req1.setEndpoint(endPoint);
+            HttpResponse res1 = h2.send(req1);
+            system.debug('@@@RESPONSE@@'+res1.getStatus());
+            if(res1.getStatus() == 'OK')
+            {
+                System.debug('I am inside 200 status');
+                success = res1.getStatus();
+                SendExternalIDUsingRestAPI send = new SendExternalIDUsingRestAPI();
+                send.saveContact();
+                
+            }
+            
+        }
+    }
+    
+    public pageReference saveContact()
+    {
+        System.debug('@@@Contact@@');
+        List<Contact> listContactEmail = [SELECT Id, Email from Contact Where Email = :con.Email];
+        if(listContactEmail.size() > 0)
+        {
+            
+            ApexPages.addmessage(new ApexPages.message(ApexPages.severity.ERROR,'Email ID Already Exist'));
+        }
+        else if(success=='OK')
+        {
+            ApexPages.addmessage(new ApexPages.message(ApexPages.severity.CONFIRM,'SUCCESSFUL'));
+            
+        }
+        else{
+            try{
+                insert con;
+                String conID=con.id;
+                SendExternalIDUsingRestAPI.callgetContact(conID);
+            }
+            catch(Exception e)
+            {
+                System.debug('@@@errorMessage@@@'+ e.getMessage());
+            }
+        }
+        
+        return null;
+    }
+    
+}
