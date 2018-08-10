@@ -1,0 +1,18 @@
+@RestResource(urlMapping='/v1/getExternalID')
+global with sharing class getExternalId {
+    @HttpGet
+	global static void doGet() {
+		String id = RestContext.request.params.get('id');
+		System.debug('ID: '+ id);
+        ExternalIDObject__c external = new ExternalIDObject__c();
+        external.Name = 'Test';
+        external.ExternalID__c = id;
+        insert external;
+	}
+
+	@HttpPost
+	global static void doPost(String id, String name) {
+		System.debug('ID: '+id+', Name: '+name);
+	}
+
+}
